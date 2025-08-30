@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Emotion Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .emotion-bar {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <h1 class="text-4xl font-bold text-center text-gray-800 mb-8">Text Emotion Detector</h1>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-6">
+                    <label for="text-input" class="block text-gray-700 text-sm font-bold mb-2">Enter your text:</label>
+                    <textarea id="text-input"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows="4" placeholder="Type or paste your text here..."></textarea>
+                </div>
+
+                <button onclick="analyzeEmotion()"
+                    class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200">
+                    Analyze Emotion
+                </button>
+            </div>
+
+            <div id="results" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Analysis Results</h2>
+                <div id="dominant-emotion" class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Dominant Emotion:</h3>
+                    <p id="emotion-text" class="text-2xl font-bold text-blue-500"></p>
+                </div>
+
+                <div id="emotion-bars" class="space-y-3">
+                    <!-- Emotion bars will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeEmotion() {
+            const textInput = document.getElementById('text-input');
+            const text = textInput.value.trim();
+
+            if (!text) {
+                alert('Please enter some text to analyze');
+                return;
+            }
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResults(data);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error analyzing text. Please try again.');
+                console.error('Error:', error);
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const emotionText = document.getElementById('emotion-text');
+            const emotionBars = document.getElementById('emotion-bars');
+
+            resultsDiv.classList.remove('hidden');
+            emotionText.textContent = `${data.dominant_emotion} (${(data.confidence * 100).toFixed(1)}% confidence)`;
+
+            // Clear previous results
+            emotionBars.innerHTML = '';
+
+            // Create emotion bars
+            data.emotions.forEach(emotion => {
+                const barContainer = document.createElement('div');
+                barContainer.className = 'space-y-1';
+
+                const label = document.createElement('div');
+                label.className = 'flex justify-between text-sm text-gray-600';
+                label.innerHTML = `
+                    <span>${emotion.label}</span>
+                    <span>${(emotion.score * 100).toFixed(1)}%</span>
+                `;
+
+                const bar = document.createElement('div');
+                bar.className = 'h-2 bg-gray-200 rounded-full overflow-hidden';
+                bar.innerHTML = `
+                    <div class="emotion-bar h-full bg-blue-500" style="width: ${emotion.score * 100}%"></div>
+                `;
+
+                barContainer.appendChild(label);
+                barContainer.appendChild(bar);
+                emotionBars.appendChild(barContainer);
+            });
+        }
+    </script>
+</body>
+
+</html>
